@@ -1,0 +1,43 @@
+# Demo e-commerce infra. labels: team = owner, tier = 1 (critical) .. 3 (low)
+services:
+  postgres:
+    image: postgres:16
+    labels: { team: platform, tier: "1" }
+  redis:
+    image: redis:7
+    labels: { team: platform, tier: "1" }
+  kafka:
+    image: bitnami/kafka:3.7
+    labels: { team: platform, tier: "1" }
+  auth-service:
+    image: shop/auth
+    depends_on: [postgres, redis]
+    labels: { team: identity, tier: "1" }
+  user-service:
+    image: shop/users
+    depends_on: [postgres, auth-service]
+    labels: { team: identity, tier: "2" }
+  inventory-service:
+    image: shop/inventory
+    depends_on: [postgres, kafka]
+    labels: { team: catalog, tier: "2" }
+  payment-service:
+    image: shop/payments
+    depends_on: [postgres, auth-service, kafka]
+    labels: { team: payments, tier: "1" }
+  order-service:
+    image: shop/orders
+    depends_on: [payment-service, inventory-service, user-service, kafka]
+    labels: { team: checkout, tier: "1" }
+  notification-service:
+    image: shop/notify
+    depends_on: [kafka, user-service]
+    labels: { team: growth, tier: "3" }
+  api-gateway:
+    image: shop/gateway
+    depends_on: [auth-service, order-service, user-service, inventory-service]
+    labels: { team: platform, tier: "1" }
+  frontend:
+    image: shop/web
+    depends_on: [api-gateway]
+    labels: { team: web, tier: "2" }
